@@ -1,72 +1,82 @@
 package secrets
 
 import (
-	"github.com/sourcegraph/sourcegraph/internal/randstring"
 	"crypto/aes"
 	"crypto/cipher"
-
+	"crypto/rand"
+	"encoding/base64"
+	"io"
 )
 
-type DBEncryptionStore inteface {
-	EncryptionKey string
+type EncryptionError struct {
+	Message string
+}
+
+func (err *EncryptionError) Error() string {
+	return err.Message
+}
+
+type DBEncryptionStore struct {
+	EncryptionKey []byte
 }
 
 // Returns an enrypted string
-func (db *DBEncryptionStore) encrypt(key string, value string) (string, err) {
+func (db *DBEncryptionStore) encrypt(key []byte, value string) (string, error) {
+	// create a one time nonce of standard length, without repetitions
 
+	byteVal := []byte(value)
 
-	// create a one time nonce of standard length
-	nonce := randstring.NewLen(12)
-
-	// initialize the cipher with our key
-	block, err := aes.NewCipher([]byte(key))
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// create a tamper proof cipher with a specific mode
-	gcm, err := cipher.NewGCM(block)
+	encrypted := make([]byte, aes.BlockSize+len(byteVal))
+	nonce := encrypted[:aes.BlockSize]
+
+	_, err = io.ReadFull(rand.Reader, nonce)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// The nonce is now part of the encrypted string
-	enc := gcm.Seal(nonce, nonce, []byte(value), nil)
-	return enc, nil
-
+	stream := cipher.NewCFBEncrypter(block, nonce)
+	stream.XORKeyStream(encrypted[aes.BlockSize:], byteVal)
+	return base64.StdEncoding.EncodeToString(encrypted), nil
 }
 
 // Encrypts the string, returning the encrypted value
-func (db *DBEncryptionStore) Encrypt(value string) (string, err) {
+func (db *DBEncryptionStore) Encrypt(value string) (string, error) {
 	return db.encrypt(db.EncryptionKey, value)
 }
 
 // Decrypts the string, returning the decrypted value
-func (db *DBEncryptionStore) Decrypt(encryptedValue string) (string, err) {
+func (db *DBEncryptionStore) Decrypt(encodedValue string) (string, error) {
+	encrypted, err := base64.StdEncoding.DecodeString(encodedValue)
+	if err != nil {
+		return "", nil
+	}
+
+	if len(encrypted) < aes.BlockSize {
+		return "", &EncryptionError{Message: "Invalid block size."}
+	}
+
 	block, err := aes.NewCipher(db.EncryptionKey)
 	if err != nil {
-		return nil, err
+		return "", nil
 	}
 
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	// get back the nonce and the encrypted string
-	nonce, crypt := encryptedValue[:gcm.NonceSize()], encryptedValue[:gcp.NonceSize():]
-	decrypted, err := gcm.Open(nil, nonce, crypt, nil)
-	if err != nil {
-		return nil, err
-	}
-	return decrypted, nil
+	nonce := encrypted[:aes.BlockSize]
+	value := encrypted[aes.BlockSize:]
+	stream := cipher.NewCFBDecrypter(block, nonce)
+	stream.XORKeyStream(value, value)
+	return string(value), nil
 }
 
 // This function rotates the encryption used on an item by decryping and then recencrypting
-func (db *DBEncryptionStore) Rotate(newKey string, encryptedValue string) (string, err) {
+func (db *DBEncryptionStore) RotateKey(newKey []byte, encryptedValue string) (string, error) {
 	decrypted, err := db.Decrypt(encryptedValue)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return db.encrypt(newKey, decrypted)
