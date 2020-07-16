@@ -16,12 +16,12 @@ func (err *EncryptionError) Error() string {
 	return err.Message
 }
 
-type DBEncryptionStore struct {
+type EncryptionStore struct {
 	EncryptionKey []byte
 }
 
 // Returns an enrypted string
-func (db *DBEncryptionStore) encrypt(key []byte, value string) (string, error) {
+func (db *EncryptionStore) encrypt(key []byte, value string) (string, error) {
 	// create a one time nonce of standard length, without repetitions
 
 	byteVal := []byte(value)
@@ -45,12 +45,12 @@ func (db *DBEncryptionStore) encrypt(key []byte, value string) (string, error) {
 }
 
 // Encrypts the string, returning the encrypted value
-func (db *DBEncryptionStore) Encrypt(value string) (string, error) {
+func (db *EncryptionStore) Encrypt(value string) (string, error) {
 	return db.encrypt(db.EncryptionKey, value)
 }
 
 // Decrypts the string, returning the decrypted value
-func (db *DBEncryptionStore) Decrypt(encodedValue string) (string, error) {
+func (db *EncryptionStore) Decrypt(encodedValue string) (string, error) {
 	encrypted, err := base64.StdEncoding.DecodeString(encodedValue)
 	if err != nil {
 		return "", nil
@@ -73,7 +73,7 @@ func (db *DBEncryptionStore) Decrypt(encodedValue string) (string, error) {
 }
 
 // This function rotates the encryption used on an item by decryping and then recencrypting
-func (db *DBEncryptionStore) RotateKey(newKey []byte, encryptedValue string) (string, error) {
+func (db *EncryptionStore) RotateKey(newKey []byte, encryptedValue string) (string, error) {
 	decrypted, err := db.Decrypt(encryptedValue)
 	if err != nil {
 		return "", err

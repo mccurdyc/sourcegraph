@@ -11,7 +11,7 @@ import (
 func TestDBEncryptingAndDecrypting(t *testing.T) {
 	// https://golang.org/pkg/crypto/aes/#NewCipher
 	key := []byte(randstring.NewLen(32)) // AES-256
-	db := DBEncryptionStore{EncryptionKey: key}
+	db := EncryptionStore{EncryptionKey: key}
 	toEncrypt := "i am the super secret string, shhhhh"
 
 	encrypted, err := db.Encrypt(toEncrypt)
@@ -40,7 +40,7 @@ func TestDBEncryptingAndDecrypting(t *testing.T) {
 // Test that different strings encrypt to different outputs
 func TestDifferentOutputs(t *testing.T) {
 	key := []byte(randstring.NewLen(32))
-	db := DBEncryptionStore{EncryptionKey: key}
+	db := EncryptionStore{EncryptionKey: key}
 	messages := []string{
 		"This may or may",
 		"This is not the same as that",
@@ -77,7 +77,7 @@ func isInSliceOnce(item string, slice []string) bool {
 func TestSampleNoRepeats(t *testing.T) {
 	key := []byte(randstring.NewLen(32))
 	toEncrypt := "All in, fall in, call in, wall in"
-	db := DBEncryptionStore{EncryptionKey: key}
+	db := EncryptionStore{EncryptionKey: key}
 
 	var crypts []string
 	for i := 0; i < 10000; i++ {
@@ -99,7 +99,7 @@ func TestDBKeyRotation(t *testing.T) {
 	secondKey := []byte(randstring.NewLen(32))
 	toEncrypt := "Chickens, pigs, giraffes, llammas, monkeys, birds, spiders"
 
-	db := DBEncryptionStore{EncryptionKey: initialKey}
+	db := EncryptionStore{EncryptionKey: initialKey}
 	encrypted, _ := db.Encrypt(toEncrypt) // another test validates
 
 	reEncrypted, _ := db.RotateKey(secondKey, encrypted) // another test validates
@@ -110,7 +110,7 @@ func TestDBKeyRotation(t *testing.T) {
 	}
 
 	// validate decrypting the message works with the new key
-	anotherDB := DBEncryptionStore{EncryptionKey: secondKey}
+	anotherDB := EncryptionStore{EncryptionKey: secondKey}
 	decrypted, err := anotherDB.Decrypt(reEncrypted)
 	if err != nil {
 		t.Errorf(err.Error())

@@ -1,14 +1,13 @@
 package secrets
 
-import (
-	"os"
-	"strings"
-)
+// type EncryptionStore interface {
+// 	// EncryptionKey string
+// 	// Backend EncryptionBackend
 
-type EncryptionStore interface{
-	EncryptionKey string
-	Backend EncryptionBackend
-}
+// 	Encrypt(value string) (string, error)
+// 	Decrypt(encryptedValue string) (string, error)
+// 	Rotate(newKey, encrytedValue string) (string, error)
+// }
 
 // var EncryptionKeys []string
 // var EncryptionProvider string
@@ -20,7 +19,7 @@ type EncryptionStore interface{
 
 // 	// for now, only the database
 // 	if enc == "" {
-// 		EncryptionProvider = DBEncryptionStore
+// 		EncryptionProvider = EncryptionStore
 // 	} else if enc == "" {
 
 // 	} else {
