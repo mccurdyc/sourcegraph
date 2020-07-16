@@ -21,7 +21,7 @@ type EncryptionStore struct {
 }
 
 // Returns an enrypted string
-func (db *EncryptionStore) encrypt(key []byte, value string) (string, error) {
+func (e *EncryptionStore) encrypt(key []byte, value string) (string, error) {
 	// create a one time nonce of standard length, without repetitions
 
 	byteVal := []byte(value)
@@ -45,12 +45,12 @@ func (db *EncryptionStore) encrypt(key []byte, value string) (string, error) {
 }
 
 // Encrypts the string, returning the encrypted value
-func (db *EncryptionStore) Encrypt(value string) (string, error) {
-	return db.encrypt(db.EncryptionKey, value)
+func (e *EncryptionStore) Encrypt(value string) (string, error) {
+	return e.encrypt(e.EncryptionKey, value)
 }
 
 // Decrypts the string, returning the decrypted value
-func (db *EncryptionStore) Decrypt(encodedValue string) (string, error) {
+func (e *EncryptionStore) Decrypt(encodedValue string) (string, error) {
 	encrypted, err := base64.StdEncoding.DecodeString(encodedValue)
 	if err != nil {
 		return "", nil
@@ -60,7 +60,7 @@ func (db *EncryptionStore) Decrypt(encodedValue string) (string, error) {
 		return "", &EncryptionError{Message: "Invalid block size."}
 	}
 
-	block, err := aes.NewCipher(db.EncryptionKey)
+	block, err := aes.NewCipher(e.EncryptionKey)
 	if err != nil {
 		return "", nil
 	}
@@ -73,11 +73,11 @@ func (db *EncryptionStore) Decrypt(encodedValue string) (string, error) {
 }
 
 // This function rotates the encryption used on an item by decryping and then recencrypting
-func (db *EncryptionStore) RotateKey(newKey []byte, encryptedValue string) (string, error) {
-	decrypted, err := db.Decrypt(encryptedValue)
+func (e *EncryptionStore) RotateKey(newKey []byte, encryptedValue string) (string, error) {
+	decrypted, err := e.Decrypt(encryptedValue)
 	if err != nil {
 		return "", err
 	}
 
-	return db.encrypt(newKey, decrypted)
+	return e.encrypt(newKey, decrypted)
 }

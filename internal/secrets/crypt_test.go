@@ -11,10 +11,10 @@ import (
 func TestDBEncryptingAndDecrypting(t *testing.T) {
 	// https://golang.org/pkg/crypto/aes/#NewCipher
 	key := []byte(randstring.NewLen(32)) // AES-256
-	db := EncryptionStore{EncryptionKey: key}
+	e := EncryptionStore{EncryptionKey: key}
 	toEncrypt := "i am the super secret string, shhhhh"
 
-	encrypted, err := db.Encrypt(toEncrypt)
+	encrypted, err := e.Encrypt(toEncrypt)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -26,7 +26,7 @@ func TestDBEncryptingAndDecrypting(t *testing.T) {
 		return
 	}
 
-	decrypted, err := db.Decrypt(encrypted)
+	decrypted, err := e.Decrypt(encrypted)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -40,7 +40,7 @@ func TestDBEncryptingAndDecrypting(t *testing.T) {
 // Test that different strings encrypt to different outputs
 func TestDifferentOutputs(t *testing.T) {
 	key := []byte(randstring.NewLen(32))
-	db := EncryptionStore{EncryptionKey: key}
+	e := EncryptionStore{EncryptionKey: key}
 	messages := []string{
 		"This may or may",
 		"This is not the same as that",
@@ -51,7 +51,7 @@ func TestDifferentOutputs(t *testing.T) {
 
 	var crypts []string
 	for _, m := range messages {
-		encrypted, _ := db.Encrypt(m)
+		encrypted, _ := e.Encrypt(m)
 		crypts = append(crypts, encrypted)
 	}
 
@@ -77,11 +77,11 @@ func isInSliceOnce(item string, slice []string) bool {
 func TestSampleNoRepeats(t *testing.T) {
 	key := []byte(randstring.NewLen(32))
 	toEncrypt := "All in, fall in, call in, wall in"
-	db := EncryptionStore{EncryptionKey: key}
+	e := EncryptionStore{EncryptionKey: key}
 
 	var crypts []string
 	for i := 0; i < 10000; i++ {
-		encrypted, _ := db.Encrypt(toEncrypt)
+		encrypted, _ := e.Encrypt(toEncrypt)
 		crypts = append(crypts, encrypted)
 	}
 
@@ -99,10 +99,10 @@ func TestDBKeyRotation(t *testing.T) {
 	secondKey := []byte(randstring.NewLen(32))
 	toEncrypt := "Chickens, pigs, giraffes, llammas, monkeys, birds, spiders"
 
-	db := EncryptionStore{EncryptionKey: initialKey}
-	encrypted, _ := db.Encrypt(toEncrypt) // another test validates
+	e := EncryptionStore{EncryptionKey: initialKey}
+	encrypted, _ := e.Encrypt(toEncrypt) // another test validates
 
-	reEncrypted, _ := db.RotateKey(secondKey, encrypted) // another test validates
+	reEncrypted, _ := e.RotateKey(secondKey, encrypted) // another test validates
 
 	if reEncrypted == encrypted {
 		t.Errorf("Failed to reencrypt the string.")
