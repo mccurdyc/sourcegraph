@@ -10,6 +10,8 @@ const { readFile, writeFile } = require('mz/fs')
 const path = require('path')
 const { format, resolveConfig } = require('prettier')
 
+const { generateGraphQlOperations } = require('./dev/generateGraphQlOperations')
+
 const GRAPHQL_SCHEMA_PATH = path.join(__dirname, '../cmd/frontend/graphqlbackend/schema.graphql')
 
 /**
@@ -115,4 +117,13 @@ async function watchSchema() {
   })
 }
 
-module.exports = { watchSchema, schema, graphQLTypes, watchGraphQLTypes }
+const watchGraphQlOperations = () => generateGraphQlOperations(true)
+
+module.exports = {
+  watchSchema,
+  schema,
+  graphQLTypes,
+  watchGraphQLTypes,
+  generateGraphQlOperations,
+  watchGraphQlOperations,
+}
