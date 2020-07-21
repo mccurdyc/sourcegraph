@@ -340,28 +340,30 @@ func prettyPrintAll(d [][]Node) string {
 	return strings.Join(resultStr, "\n")
 }
 
-// extend extends a set of queries with a term.
-func extend(disjuncted [][]Node, n Node) {
+// extend extends every row in disjuncted by the term.
+func extend(disjuncted [][]Node, n Node) [][]Node {
 	for i, e := range disjuncted {
 		disjuncted[i] = append(e, n)
 	}
+	return disjuncted
 }
 
-// product does the thing
-func product(disjuncted [][]Node, nodes []Node) {
+// if empty, returns an array that has a row for each element in nodes. If not empty,
+// extends each row in disjuncted with each of nodes.
+func product(disjuncted [][]Node, nodes []Node) [][]Node {
 	if len(disjuncted) == 0 {
 		for _, n := range nodes {
-			fmt.Printf("adding %s\n", prettyPrint([]Node{n}))
+			// fmt.Printf("adding %s\n", prettyPrint([]Node{n}))
 			disjuncted = append(disjuncted, []Node{n})
-			fmt.Printf("result:\n%s\n", prettyPrintAll(disjuncted))
+			// fmt.Printf("result:\n%s\n", prettyPrintAll(disjuncted))
 		}
-		return
+		return disjuncted
 	}
 
 	for _, n := range nodes {
-		extend(disjuncted, n)
+		disjuncted = extend(disjuncted, n)
 	}
-	return
+	return disjuncted
 }
 
 func merge(left, right [][]Node) {
@@ -378,35 +380,43 @@ func isLeaf(node Node) bool {
 	return false
 }
 
-func ExpandOr(disjuncted [][]Node, nodes []Node) {
+func ExpandOr(prefixes [][]Node, nodes []Node) [][]Node {
 	for _, node := range nodes {
 		switch v := node.(type) {
 		case Operator:
 			switch v.Kind {
 			case Or:
-				fmt.Printf("product OR\n")
+				fmt.Printf("ExpandOR\n")
+				fmt.Printf("prefixes:\n%s\n", prettyPrintAll(prefixes))
+				result := [][]Node{{}}
 				for _, o := range v.Operands {
-					if isLeaf(o) {
-						product(disjuncted, []Node{o})
-					} else {
-						ExpandOr(disjuncted, []Node{o})
+					var newPrefixes [][]Node
+					newPrefixes = ExpandOr(newPrefixes, []Node{o}) // make new prefixes for this node, whether it is an OR expression, or a leaf, or whatever.
+					fmt.Printf("newPrefixes (ExpandOr):\n%s\n", prettyPrintAll(newPrefixes))
+					for _, newPrefix := range newPrefixes {
+						for i, prefix := range prefixes {
+							fmt.Printf("Doing prefix %d: %s\n", i, prefix)
+							fmt.Printf("(concat prefix newPefix): (%s) (%s)\n", prettyPrint(prefix), prettyPrint(newPrefix))
+							result = append(result, append(prefix, newPrefix...))
+						}
 					}
 				}
+				prefixes = result
 			case And:
 				fmt.Printf("product AND\n")
-				for _, o := range v.Operands {
-					// get result
-					ExpandOr(disjuncted, []Node{o})
-					// append to next result, because it's and
-				}
-				fmt.Printf("After AND:\n%s\n", prettyPrintAll(disjuncted))
+				prefixes = ExpandOr(prefixes, v.Operands)
+				fmt.Printf("ahead:\n%s\n", prettyPrintAll(prefixes))
 			case Concat:
 				panic("dunno")
 			}
 		case Parameter, Pattern:
-			product(disjuncted, []Node{v})
+			fmt.Printf("Param/Patt: %s\n", prettyPrint([]Node{v}))
+			prefixes = product(prefixes, []Node{v})
+			fmt.Printf("Result (product param/patt):\n%s\n", prettyPrintAll(prefixes))
 		}
 	}
+	fmt.Printf("returning:\n%s\n", prettyPrintAll(prefixes))
+	return prefixes
 }
 
 func substituteOrForRegexp(nodes []Node) []Node {

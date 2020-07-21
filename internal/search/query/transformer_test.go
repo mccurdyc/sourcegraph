@@ -287,20 +287,23 @@ func TestExpandOr(t *testing.T) {
 	}{
 		{
 			input: "(repo:a (file:b or file:c))",
-			want:  "",
+			want:  ` OR "repo:a" "file:b" OR "repo:a" "file:c"`,
+		},
+		{
+			input: "(repo:a (file:b or file:c) (file:d or file:e))",
+			want:  ` OR "repo:a" "file:b" OR "repo:a" "file:c"`,
 		},
 	}
 	for _, c := range cases {
 		t.Run("Map query", func(t *testing.T) {
 			query, _ := ParseAndOr(c.input, SearchTypeRegex)
 			fmt.Printf("In: %s\n", prettyPrint(query))
-			queries := [][]Node{}
-			ExpandOr(queries, query)
+			queries := ExpandOr([][]Node{}, query)
 			var queriesStr []string
 			for _, q := range queries {
 				queriesStr = append(queriesStr, prettyPrint(q))
 			}
-			got := strings.Join(queriesStr, "\n")
+			got := strings.Join(queriesStr, " OR ")
 			if diff := cmp.Diff(c.want, got); diff != "" {
 				t.Fatal(diff)
 			}
