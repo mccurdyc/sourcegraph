@@ -1,19 +1,12 @@
 package query
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
-
-func prettyPrint(nodes []Node) string {
-	var resultStr []string
-	for _, node := range nodes {
-		resultStr = append(resultStr, node.String())
-	}
-	return strings.Join(resultStr, " ")
-}
 
 func TestSubstituteAliases(t *testing.T) {
 	input := "r:repo g:repogroup f:file"
@@ -293,14 +286,16 @@ func TestExpandOr(t *testing.T) {
 		want  string
 	}{
 		{
-			input: "(repo:repofoo (file:repofile or file:repobar))",
+			input: "(repo:a (file:b or file:c))",
 			want:  "",
 		},
 	}
 	for _, c := range cases {
 		t.Run("Map query", func(t *testing.T) {
-			query, _ := ParseAndOr(c.input)
-			queries := ExpandOr(query)
+			query, _ := ParseAndOr(c.input, SearchTypeRegex)
+			fmt.Printf("In: %s\n", prettyPrint(query))
+			queries := [][]Node{}
+			ExpandOr(queries, query)
 			var queriesStr []string
 			for _, q := range queries {
 				queriesStr = append(queriesStr, prettyPrint(q))

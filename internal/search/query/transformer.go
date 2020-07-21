@@ -324,9 +324,89 @@ func partition(nodes []Node, fn func(node Node) bool) (left, right []Node) {
 	return left, right
 }
 
-func ExpandOr(query []Node) [][]Node {
-	disjuncted := [][]Node{}
-	return disjuncted
+func prettyPrint(nodes []Node) string {
+	var resultStr []string
+	for _, node := range nodes {
+		resultStr = append(resultStr, node.String())
+	}
+	return strings.Join(resultStr, " ")
+}
+
+func prettyPrintAll(d [][]Node) string {
+	var resultStr []string
+	for _, x := range d {
+		resultStr = append(resultStr, prettyPrint(x))
+	}
+	return strings.Join(resultStr, "\n")
+}
+
+// extend extends a set of queries with a term.
+func extend(disjuncted [][]Node, n Node) {
+	for i, e := range disjuncted {
+		disjuncted[i] = append(e, n)
+	}
+}
+
+// product does the thing
+func product(disjuncted [][]Node, nodes []Node) {
+	if len(disjuncted) == 0 {
+		for _, n := range nodes {
+			fmt.Printf("adding %s\n", prettyPrint([]Node{n}))
+			disjuncted = append(disjuncted, []Node{n})
+			fmt.Printf("result:\n%s\n", prettyPrintAll(disjuncted))
+		}
+		return
+	}
+
+	for _, n := range nodes {
+		extend(disjuncted, n)
+	}
+	return
+}
+
+func merge(left, right [][]Node) {
+	for _, e := range right {
+		left = append(left, e)
+	}
+}
+
+func isLeaf(node Node) bool {
+	switch node.(type) {
+	case Parameter, Pattern:
+		return true
+	}
+	return false
+}
+
+func ExpandOr(disjuncted [][]Node, nodes []Node) {
+	for _, node := range nodes {
+		switch v := node.(type) {
+		case Operator:
+			switch v.Kind {
+			case Or:
+				fmt.Printf("product OR\n")
+				for _, o := range v.Operands {
+					if isLeaf(o) {
+						product(disjuncted, []Node{o})
+					} else {
+						ExpandOr(disjuncted, []Node{o})
+					}
+				}
+			case And:
+				fmt.Printf("product AND\n")
+				for _, o := range v.Operands {
+					// get result
+					ExpandOr(disjuncted, []Node{o})
+					// append to next result, because it's and
+				}
+				fmt.Printf("After AND:\n%s\n", prettyPrintAll(disjuncted))
+			case Concat:
+				panic("dunno")
+			}
+		case Parameter, Pattern:
+			product(disjuncted, []Node{v})
+		}
+	}
 }
 
 func substituteOrForRegexp(nodes []Node) []Node {
